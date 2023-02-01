@@ -7,6 +7,7 @@ import datetime
 import glob
 import dill as pickle
 import os
+import platform
 
 PHI0 = 0    # Angles phi are wrt to sattellite flying direction. Satellite flies
             # almost north, but 33 degrees west. Subtract PHI0 from phi to
@@ -132,7 +133,10 @@ def transform_cloud_edge(sample_ds):
     return lat, lon, height, height_a
 
 def show_cloud_tops(show_background=False):
-    filenames = findaAllFiles(folder="InitialData",extn ="/*.nc")
+    if platform.system() == 'Darwin':
+        filenames = findaAllFiles(folder=f"{os.getcwd()}/InitialData",extn ="/*.nc")
+    else:
+        filenames = findaAllFiles(folder="InitialData",extn ="/*.nc")
     filename1 = filenames[9]
     sample_ds = xr.load_dataset(filename1, engine="netcdf4")
     if show_background:
@@ -182,17 +186,24 @@ def compare_transform(name1, name2):
 
 if __name__ == "__main__":
 
-    dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.so')
+    if platform.system() == 'Darwin':
+        dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.dylib')
+    else :
+        dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.so')
     dll_swi = set_dll_argtypes(dll_swi)
 
     folder = "InitialData"
     outputFolder = 'Output'
-    mydir = os.getcwd()
-    mydir = mydir[0:-len(mydir.split('/')[-1])-1]
-    mydir = os.path.join(mydir,folder)
-    outdir = os.getcwd()
-    outdir = outdir[0:-len(outdir.split('/')[-1])-1]
-    outdir = os.path.join(outdir,outputFolder)
+    if platform.system() == 'Darwin':
+        mydir = f"{os.getcwd()}/{folder}"
+        outdir = f"{os.getcwd()}/{outputFolder}"
+    else :
+        mydir = os.getcwd()
+        mydir = mydir[0:-len(mydir.split('/')[-1])-1]
+        mydir = os.path.join(mydir,folder)
+        outdir = os.getcwd()
+        outdir = outdir[0:-len(outdir.split('/')[-1])-1]
+        outdir = os.path.join(outdir,outputFolder)
 
     try:
         os.mkdir(mydir)
