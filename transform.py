@@ -62,7 +62,7 @@ def regrid_knmi(lat_true, lon_true, height, lat, lon):
     and allocates the output array.
     """
     height = np.array(height, dtype=ctypes.c_double)
-    retval = np.zeros(lat.shape, dtype=ctypes.c_double)
+    retval = np.zeros(lat.shape, dtype=ctypes.c_double)-np.Infinity
     tstart = datetime.datetime.now()
     print("starting regrid at t=",tstart)
     dll_swi.regrid_knmi(lat.shape[1], lat.shape[0],
