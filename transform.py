@@ -171,7 +171,7 @@ def regridded_cloud_edge(sample_ds):
     height = regrid_knmi(lat_a, lon_a, height_a, lat, lon)
     return lat, lon, height, height_a
 
-def show_cloud_tops(show_background=False):
+def show_cloud_tops(mydir,show_background=False):
     """
     For two data sets referring to the same time,
     create plots to illustrate the transformation from apparent
@@ -187,26 +187,22 @@ def show_cloud_tops(show_background=False):
           actual location. With a bit of luck, the two actual locations
           will be the same!
     """
-    if platform.system() == 'Darwin':
-        filenames = findaAllFiles(folder=f"{os.getcwd()}/InitialData",extn ="/*.nc")
-    else:
-        filenames = findaAllFiles(folder="InitialData",extn ="/*.nc")
-    filename1 = filenames[9]
+    filename1 = os.path.join(mydir,'12_02_10_A3.nc')
+    filename2 = os.path.join(mydir,'12_02_10_B1.nc')
     sample_ds = xr.load_dataset(filename1, engine="netcdf4")
     if show_background:
         plt.figure(1)
-    cloud_top(sample_ds,'A3', show_background)
+    cloud_top(sample_ds,filename1, show_background)
     if show_background:
        plt.axis('equal')
        plt.title('Sattellite A3')
        plt.legend()
 
-    filename2 = filenames[5]
     sample_ds = xr.load_dataset(filename2, engine="netcdf4")
 
     if show_background:
        plt.figure(2)
-    cloud_top(sample_ds,'B1', show_background)
+    cloud_top(sample_ds,filename2, show_background)
     if show_background:
        plt.title('Sattellite B1')
     plt.axis('equal')
@@ -249,18 +245,12 @@ def compare_transform(name1, name2):
     plt.show()
 
 # Open the dll and prepare it so its functions can be called
-dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.so')
+if platform.system() == 'Darwin':
+    dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.dylib')
+else :
+    dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.so')
 dll_swi = set_dll_argtypes(dll_swi)
-
-<<<<<<< HEAD
-    if platform.system() == 'Darwin':
-        dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.dylib')
-    else :
-        dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.so')
-    dll_swi = set_dll_argtypes(dll_swi)
-=======
 if __name__ == "__main__":
->>>>>>> 44210af (docstrings in transform.py)
 
     folder = "InitialData"
     outputFolder = 'Output'
@@ -286,8 +276,8 @@ if __name__ == "__main__":
         pass
 
     if True:
-        show_cloud_tops(show_background=False)
-        show_cloud_tops(show_background=True)
+        show_cloud_tops(mydir,show_background=False)
+        show_cloud_tops(mydir,show_background=True)
     if True:
 
         compare_transform(os.path.join(mydir,'12_03_10_A2.nc'), os.path.join(mydir,'12_03_10_B2.nc'))
