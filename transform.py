@@ -291,7 +291,7 @@ if __name__ == "__main__":
         my_dict = { 'lat': lat, 'lon': lon, 'height': height}
 
         fname_nodir = fname.split('/')[-1]
-        outfname = os.path.join(outdir,fname_nodir.replace('.nc','.pkl'))
+        outfname = os.path.join(outdir,'regridded_position_'+fname_nodir.replace('.nc','.pkl'))
 
         print("writing pickle file ",outfname)
         with open(outfname,'wb') as file:
@@ -299,9 +299,8 @@ if __name__ == "__main__":
 
         my_dict = { 'lat': lat_true, 'lon': lon_true, 'height': height_true}
 
-        outfname = os.path.join(outdir,fname_nodir.replace('.nc','_new.pkl'))
+        outfname = os.path.join(outdir,'true_latlon_'+fname_nodir.replace('.nc','.pkl'))
 
         print("writing pickle file ",outfname)
         with open(outfname,'wb') as file:
             pickle.dump(my_dict, file)
-
