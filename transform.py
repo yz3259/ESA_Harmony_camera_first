@@ -13,7 +13,18 @@ PHI0 = 0    # Angles phi are wrt to sattellite flying direction. Satellite flies
             # almost north, but 33 degrees west. Subtract PHI0 from phi to
             # get the angle wrt the north direction. [deg]
 R = 6.371e6 # radius of the earth [m]
-
+datadict = { # dictionary with input filenames
+            "A1" : "12_04_10_A1.nc",
+            "A2" : "12_03_10_A2.nc",
+            "A3" : "12_02_10_A3.nc",
+            "A4" : "12_01_10_A4.nc",
+            "A5" : "12_00_10_A5.nc",
+            "B1" : "12_02_10_B1.nc",
+            "B2" : "12_03_10_B2.nc",
+            "B3" : "12_04_10_B3.nc",
+            "B4" : "12_05_10_B4.nc",
+            "B5" : "12_06_10_B5.nc"
+            }
 
 def findaAllFiles(folder="InitialData",extn ="/*.nc"):
     """
@@ -280,9 +291,9 @@ if __name__ == "__main__":
         show_cloud_tops(mydir,show_background=True)
     if True:
 
-        compare_transform(os.path.join(mydir,'12_03_10_A2.nc'), os.path.join(mydir,'12_03_10_B2.nc'))
-        compare_transform(os.path.join(mydir,'12_02_10_A3.nc'), os.path.join(mydir,'12_02_10_B1.nc'))
-        compare_transform(os.path.join(mydir,'12_04_10_A1.nc'), os.path.join(mydir,'12_04_10_B3.nc'))
+        compare_transform(os.path.join(mydir, datadict['A2']), os.path.join(mydir,datadict['B2']))
+        compare_transform(os.path.join(mydir, datadict['A3']), os.path.join(mydir,datadict['B1']))
+        compare_transform(os.path.join(mydir, datadict['A1']), os.path.join(mydir,datadict['B3']))
 
     for fname in glob.glob(os.path.join(mydir,'12*.nc')):
         sample_ds = xr.load_dataset(fname, engine="netcdf4")
