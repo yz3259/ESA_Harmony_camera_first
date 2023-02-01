@@ -37,6 +37,10 @@ def findaAllFiles(folder="InitialData",extn ="/*.nc"):
 
 
 def set_dll_argtypes(dll_swi):
+    """
+    Fill in the argtypes in the dll object
+    so python can call the function correctly
+    """
     nx = ctypes.c_size_t
     ny = ctypes.c_size_t
     lat_a = ctypes.c_void_p
@@ -51,6 +55,12 @@ def set_dll_argtypes(dll_swi):
 
 
 def regrid_knmi(lat_a, lon_a, height, lat, lon):
+    """
+    This is a wrapper for the function of the same name
+    in the dll. The wrapper's extra functionality is
+    that it finds the dimensions (from the input data)
+    and allocates the output array.
+    """
     height = np.array(height, dtype=ctypes.c_double)
     retval = np.zeros(lat.shape, dtype=ctypes.c_double)
     tstart = datetime.datetime.now()
@@ -63,6 +73,10 @@ def regrid_knmi(lat_a, lon_a, height, lat, lon):
     return retval
 
 def arrays_from_sample_ds(sample_ds):
+    """
+    Read the contents from a sample_ds object and return them as
+    numpy arrays
+    """
     height_a = sample_ds.cloud_edge_height.values  * 1e3
     lat      = sample_ds.latitude.values
     lon      = sample_ds.longitude.values
@@ -75,8 +89,13 @@ def arrays_from_sample_ds(sample_ds):
     return lat, lon, theta, phi, height_a
 
 def cloud_top(sample_ds, name, plot_background=False):
+    """
+    Create a plot showing the apparent and the actual location of
+    the tallest cloud. Optionally, draw the data in the background.
+    """
     lat, lon, theta, phi, height_a  = arrays_from_sample_ds(sample_ds)
 
+    # Find the tallest cloud and its properties
     max_h = np.max(height_a)
     w = np.where(height_a==np.max(height_a))
     ix_max = w[0]
@@ -86,6 +105,7 @@ def cloud_top(sample_ds, name, plot_background=False):
     phi_max = np.array([phi[ix,iy] for ix,iy in zip(ix_max, iy_max)])
     theta_max = np.array([theta[ix,iy] for ix,iy in zip(ix_max, iy_max)])
     if plot_background:
+        # optionally, plot the data in the background
         plt.contourf(lon,lat,height_a)
     plt.plot(lon_max,lat_max,'*',label=name)
 
@@ -95,17 +115,23 @@ def cloud_top(sample_ds, name, plot_background=False):
     theta_max = np.mean(theta_max)
 
     plt.plot(lon_max,lat_max,'r*', label='apparent location')
+
+    # Calculate the actual location of the tallest cloud
     lon_a = lon_max - 180/np.pi * ( max_h * np.sin( (phi_max-PHI0)*np.pi/180 )
                    / (R * np.cos(lat_max*np.pi/180) * np.tan((theta_max-90)*np.pi/180)) )
     lat_a = ( lat_max
               - 180/np.pi *  max_h * np.cos( (phi_max-PHI0)*np.pi/180)
                           / (R * np.tan((theta_max-90)*np.pi/180))
             )
+    # Plot a line from the apparent to the actual location
     plt.plot([lon_max, lon_a], [lat_max, lat_a],'r')
     plt.plot(lon_a, lat_a,'ro', label='actual location')
 
 
 def transform_cloud_edge(sample_ds):
+    """
+    Return the true positions for the cloud height
+    """
     lat, lon, theta, phi, height_a  = arrays_from_sample_ds(sample_ds)
 
     lon_a = ( lon
@@ -129,10 +155,38 @@ def transform_cloud_edge(sample_ds):
         print("lat[",ix,',',iy,']=',lat[ix,iy])
         print("theta[",ix,',',iy,']=',theta[ix,iy])
         raise RuntimeError("klaar")
+    return lat_a, lon_a
+
+def regridded_cloud_edge(sample_ds):
+    """
+    Return the actual cloud height after regridding it to the
+    original (latitude, longitude) grid
+    """
+    lat, lon, theta, phi, height_a  = arrays_from_sample_ds(sample_ds)
+
+    # Get the (latitude, longitude) grid for the original height field
+    lat_a, lon_a = transform_cloud_edge(sample_ds)
+
+    # Regrid the height field to the original (latitude, longitude) grid
     height = regrid_knmi(lat_a, lon_a, height_a, lat, lon)
     return lat, lon, height, height_a
 
 def show_cloud_tops(show_background=False):
+    """
+    For two data sets referring to the same time,
+    create plots to illustrate the transformation from apparent
+    to actual location of the tallest cloud.
+
+    with show_background = True
+          you get two figures, each shows one dataset with a line
+          connecting the apparent location of the tallest cloud to
+          its actual location.
+    with show_background = False
+          you get one picture, and no background. The picture shows
+          two lines, each going from the apparent location to the
+          actual location. With a bit of luck, the two actual locations
+          will be the same!
+    """
     if platform.system() == 'Darwin':
         filenames = findaAllFiles(folder=f"{os.getcwd()}/InitialData",extn ="/*.nc")
     else:
@@ -161,7 +215,11 @@ def show_cloud_tops(show_background=False):
     plt.show()
 
 def show_transform(sample_ds, name):
-    lat, lon, height, height_a = transform_cloud_edge(sample_ds)
+    """
+    Draw two subplots: the top one shows the actual cloud height,
+    and the bottom one shows the apparent cloud height
+    """
+    lat, lon, height, height_a = regridded_cloud_edge(sample_ds)
     plt.subplot(2,1,1)
     plt.contourf(lon,lat,height,levels=30)
     plt.title('actual cloud height '+name)
@@ -175,6 +233,12 @@ def show_transform(sample_ds, name):
 
 
 def compare_transform(name1, name2):
+    """
+    Draw the apparent (bottom) and actual (top) cloud heights for two datasets.
+
+    When you call this for two datasets that refer to the same time,
+    the top pictures will hopefully be almost the same.
+    """
     plt.figure(1)
     sample_ds = xr.load_dataset(name1, engine="netcdf4")
     show_transform(sample_ds, name1)
@@ -184,13 +248,19 @@ def compare_transform(name1, name2):
     show_transform(sample_ds, name2)
     plt.show()
 
-if __name__ == "__main__":
+# Open the dll and prepare it so its functions can be called
+dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.so')
+dll_swi = set_dll_argtypes(dll_swi)
 
+<<<<<<< HEAD
     if platform.system() == 'Darwin':
         dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.dylib')
     else :
         dll_swi = ctypes.cdll.LoadLibrary('./build/libswi_knmi.so')
     dll_swi = set_dll_argtypes(dll_swi)
+=======
+if __name__ == "__main__":
+>>>>>>> 44210af (docstrings in transform.py)
 
     folder = "InitialData"
     outputFolder = 'Output'
@@ -226,9 +296,8 @@ if __name__ == "__main__":
 
     for fname in glob.glob(os.path.join(mydir,'12*.nc')):
         sample_ds = xr.load_dataset(fname, engine="netcdf4")
-        lat, lon, height, height_a = transform_cloud_edge(sample_ds)
+        lat, lon, height, height_a = regridded_cloud_edge(sample_ds)
         my_dict = { 'lat': lat, 'lon': lon, 'height': height}
-
 
         fname_nodir = fname.split('/')[-1]
         outfname = os.path.join(outdir,fname_nodir.replace('.nc','.pkl'))
@@ -236,4 +305,3 @@ if __name__ == "__main__":
         print("writing pickle file ",outfname)
         with open(outfname,'wb') as file:
             pickle.dump(my_dict, file)
-    quit()
