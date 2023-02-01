@@ -43,18 +43,18 @@ def set_dll_argtypes(dll_swi):
     """
     nx = ctypes.c_size_t
     ny = ctypes.c_size_t
-    lat_a = ctypes.c_void_p
-    lon_a = ctypes.c_void_p
-    height_a = ctypes.c_void_p
+    lat_true = ctypes.c_void_p
+    lon_true = ctypes.c_void_p
+    height_true = ctypes.c_void_p
     lat = ctypes.c_void_p
     lon = ctypes.c_void_p
     height = ctypes.c_void_p
 
-    dll_swi.regrid_knmi.argtypes = [nx, ny, lat_a, lon_a, height_a, lat, lon, height]
+    dll_swi.regrid_knmi.argtypes = [nx, ny, lat_true, lon_true, height_true, lat, lon, height]
     return dll_swi
 
 
-def regrid_knmi(lat_a, lon_a, height, lat, lon):
+def regrid_knmi(lat_true, lon_true, height, lat, lon):
     """
     This is a wrapper for the function of the same name
     in the dll. The wrapper's extra functionality is
@@ -66,7 +66,7 @@ def regrid_knmi(lat_a, lon_a, height, lat, lon):
     tstart = datetime.datetime.now()
     print("starting regrid at t=",tstart)
     dll_swi.regrid_knmi(lat.shape[1], lat.shape[0],
-                        lat_a.ctypes.data, lon_a.ctypes.data, height.ctypes.data,
+                        lat_true.ctypes.data, lon_true.ctypes.data, height.ctypes.data,
                         lat.ctypes.data, lon.ctypes.data, retval.ctypes.data)
     print("finished regrid at t=",datetime.datetime.now())
     print("regrid took ",datetime.datetime.now()-tstart)
@@ -77,27 +77,27 @@ def arrays_from_sample_ds(sample_ds):
     Read the contents from a sample_ds object and return them as
     numpy arrays
     """
-    height_a = sample_ds.cloud_edge_height.values  * 1e3
+    height_true = sample_ds.cloud_edge_height.values  * 1e3
     lat      = sample_ds.latitude.values
     lon      = sample_ds.longitude.values
     theta    = sample_ds.theta_view.values
     phi      = sample_ds.phi_view.values
 
-    theta[np.isnan(height_a)] = 0
-    phi[np.isnan(height_a)] = 0
-    height_a[np.isnan(height_a)] = 0
-    return lat, lon, theta, phi, height_a
+    theta[np.isnan(height_true)] = 0
+    phi[np.isnan(height_true)] = 0
+    height_true[np.isnan(height_true)] = 0
+    return lat, lon, theta, phi, height_true
 
 def cloud_top(sample_ds, name, plot_background=False):
     """
     Create a plot showing the apparent and the actual location of
     the tallest cloud. Optionally, draw the data in the background.
     """
-    lat, lon, theta, phi, height_a  = arrays_from_sample_ds(sample_ds)
+    lat, lon, theta, phi, height_true  = arrays_from_sample_ds(sample_ds)
 
     # Find the tallest cloud and its properties
-    max_h = np.max(height_a)
-    w = np.where(height_a==np.max(height_a))
+    max_h = np.max(height_true)
+    w = np.where(height_true==np.max(height_true))
     ix_max = w[0]
     iy_max = w[1]
     lon_max = np.array([lon[ix,iy] for ix,iy in zip(ix_max, iy_max)])
@@ -106,7 +106,7 @@ def cloud_top(sample_ds, name, plot_background=False):
     theta_max = np.array([theta[ix,iy] for ix,iy in zip(ix_max, iy_max)])
     if plot_background:
         # optionally, plot the data in the background
-        plt.contourf(lon,lat,height_a)
+        plt.contourf(lon,lat,height_true)
     plt.plot(lon_max,lat_max,'*',label=name)
 
     lon_max = np.mean(lon_max)
@@ -117,59 +117,59 @@ def cloud_top(sample_ds, name, plot_background=False):
     plt.plot(lon_max,lat_max,'r*', label='apparent location')
 
     # Calculate the actual location of the tallest cloud
-    lon_a = lon_max - 180/np.pi * ( max_h * np.sin( (phi_max-PHI0)*np.pi/180 )
+    lon_true = lon_max - 180/np.pi * ( max_h * np.sin( (phi_max-PHI0)*np.pi/180 )
                    / (R * np.cos(lat_max*np.pi/180) * np.tan((theta_max-90)*np.pi/180)) )
-    lat_a = ( lat_max
+    lat_true = ( lat_max
               - 180/np.pi *  max_h * np.cos( (phi_max-PHI0)*np.pi/180)
                           / (R * np.tan((theta_max-90)*np.pi/180))
             )
     # Plot a line from the apparent to the actual location
-    plt.plot([lon_max, lon_a], [lat_max, lat_a],'r')
-    plt.plot(lon_a, lat_a,'ro', label='actual location')
+    plt.plot([lon_max, lon_true], [lat_max, lat_true],'r')
+    plt.plot(lon_true, lat_true,'ro', label='actual location')
 
 
 def transform_cloud_edge(sample_ds):
     """
     Return the true positions for the cloud height
     """
-    lat, lon, theta, phi, height_a  = arrays_from_sample_ds(sample_ds)
+    lat, lon, theta, phi, height_true  = arrays_from_sample_ds(sample_ds)
 
-    lon_a = ( lon
-              - 180/np.pi * height_a * np.sin( (phi-PHI0)*np.pi/180 )
+    lon_true = ( lon
+              - 180/np.pi * height_true * np.sin( (phi-PHI0)*np.pi/180 )
                    / (R * np.cos(lat*np.pi/180) * np.tan((theta-90)*np.pi/180))
             )
-    lat_a = ( lat
-              - 180/np.pi *  height_a * np.cos( (phi-PHI0)*np.pi/180)
+    lat_true = ( lat
+              - 180/np.pi *  height_true * np.cos( (phi-PHI0)*np.pi/180)
                           / (R * np.tan((theta-90)*np.pi/180))
             )
 
-    if np.any(np.isnan(lon_a)):
+    if np.any(np.isnan(lon_true)):
         print("NaNs found in longitude")
-        w = np.where(np.isnan(lon_a))
+        w = np.where(np.isnan(lon_true))
         ix = w[0][0]
         iy = w[1][0]
         print("At (ix,iy) = ",ix,',',iy)
-        print("lon_a[",ix,',',iy,']=',lon_a[ix,iy])
-        print("height_a[",ix,',',iy,']=',height_a[ix,iy])
+        print("lon_true[",ix,',',iy,']=',lon_true[ix,iy])
+        print("height_true[",ix,',',iy,']=',height_true[ix,iy])
         print("phi[",ix,',',iy,']=',phi[ix,iy])
         print("lat[",ix,',',iy,']=',lat[ix,iy])
         print("theta[",ix,',',iy,']=',theta[ix,iy])
         raise RuntimeError("klaar")
-    return lat_a, lon_a
+    return lat_true, lon_true
 
 def regridded_cloud_edge(sample_ds):
     """
-    Return the actual cloud height after regridding it to the
+    Return the cloud height with true locations after regridding them to the
     original (latitude, longitude) grid
     """
-    lat, lon, theta, phi, height_a  = arrays_from_sample_ds(sample_ds)
+    lat, lon, theta, phi, height_true  = arrays_from_sample_ds(sample_ds)
 
     # Get the (latitude, longitude) grid for the original height field
-    lat_a, lon_a = transform_cloud_edge(sample_ds)
+    lat_true, lon_true = transform_cloud_edge(sample_ds)
 
     # Regrid the height field to the original (latitude, longitude) grid
-    height = regrid_knmi(lat_a, lon_a, height_a, lat, lon)
-    return lat, lon, height, height_a
+    height = regrid_knmi(lat_true, lon_true, height_true, lat, lon)
+    return lat, lon, height, height_true
 
 def show_cloud_tops(mydir,show_background=False):
     """
@@ -215,14 +215,14 @@ def show_transform(sample_ds, name):
     Draw two subplots: the top one shows the actual cloud height,
     and the bottom one shows the apparent cloud height
     """
-    lat, lon, height, height_a = regridded_cloud_edge(sample_ds)
+    lat, lon, height, height_true = regridded_cloud_edge(sample_ds)
     plt.subplot(2,1,1)
     plt.contourf(lon,lat,height,levels=30)
     plt.title('actual cloud height '+name)
     plt.axis('equal')
     plt.colorbar()
     plt.subplot(2,1,2)
-    plt.contourf(lon,lat,height_a,levels=30)
+    plt.contourf(lon,lat,height_true,levels=30)
     plt.title('apparent cloud height '+name)
     plt.axis('equal')
     plt.colorbar()
@@ -286,7 +286,8 @@ if __name__ == "__main__":
 
     for fname in glob.glob(os.path.join(mydir,'12*.nc')):
         sample_ds = xr.load_dataset(fname, engine="netcdf4")
-        lat, lon, height, height_a = regridded_cloud_edge(sample_ds)
+        lat_true, lon_true = transform_cloud_edge(sample_ds)
+        lat, lon, height, height_true = regridded_cloud_edge(sample_ds)
         my_dict = { 'lat': lat, 'lon': lon, 'height': height}
 
         fname_nodir = fname.split('/')[-1]
@@ -295,3 +296,12 @@ if __name__ == "__main__":
         print("writing pickle file ",outfname)
         with open(outfname,'wb') as file:
             pickle.dump(my_dict, file)
+
+        my_dict = { 'lat': lat_true, 'lon': lon_true, 'height': height_true}
+
+        outfname = os.path.join(outdir,fname_nodir.replace('.nc','_new.pkl'))
+
+        print("writing pickle file ",outfname)
+        with open(outfname,'wb') as file:
+            pickle.dump(my_dict, file)
+
