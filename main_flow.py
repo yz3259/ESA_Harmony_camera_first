@@ -130,14 +130,12 @@ def find_mainflow(snapshots, mwindow = 1, u=None, v=None):
                 weight += w
         
         t0t1 = t0 + ' : ' + t1 
-        if t0t1 in u:
-           u[t0t1] += vel_u/weight
-        else:
-           u[t0t1] = vel_u/weight
-        if t0t1 in v:
-           v[t0t1] += vel_v/weight
-        else:
-           v[t0t1] = vel_v/weight
+        isok = weight>0
+        if t0t1 not in u:
+           u[t0t1] = np.zeros(shape)
+           v[t0t1] = np.zeros(shape)
+        u[t0t1][isok] += vel_u[isok]/weight[isok]
+        v[t0t1][isok] += vel_v[isok]/weight[isok]
 
     return u, v
 
@@ -190,14 +188,12 @@ def show_shifted(lat,lon, snapshots, shifted):
         plt.figure(i,figsize=(16, 16));
         plt.subplot(2,1,1)
         plt.contourf(lon,lat,snapshots[t0])
-        plt.xlim(300.85,300.94)
-        plt.ylim(13.795,13.860)
+        # plt.xlim(300.85,300.94); plt.ylim(13.795,13.860)
         plt.title(t0)
 
         plt.subplot(2,1,2)
         plt.contourf(lon,lat,shifted[t0])
-        plt.xlim(300.85,300.94)
-        plt.ylim(13.795,13.860)
+        # plt.xlim(300.85,300.94) plt.ylim(13.795,13.860)
         plt.title(t0+", shifted")
         plt.savefig(os.path.join(image_dir,f'paired_{t0}.png'),dpi=300)
     plt.show()
