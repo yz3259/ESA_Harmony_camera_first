@@ -11,14 +11,28 @@ def read_snapshots(mydir):
     lat, lon = None, None
     max_height = 0
     for fname in glob(os.path.join(mydir,'*.pkl')):
+        print("file",fname)
         #print(fname)
         # if '_new' in fname:
         #     continue
         if 'regrid' not in fname:
             continue
-
+        print("PROCESSING",fname)
         identification = os.path.basename(fname).replace('.pkl','')
-        time = identification[:8]
+        print(identification.split('_'))
+
+        # find the time string in file name
+        for string in identification.split('_'):
+            try:
+                int(string)
+                idx = identification.find(string)
+              #  print(idx)
+                break
+            except ValueError:
+                continue
+
+        time = identification[idx:]
+        print('time:',time)
         camera = identification[9:]
         with open(fname,'rb') as file:
             mydict = pickle.load(file)
@@ -90,11 +104,31 @@ def shift_snapshots(snapshots, u, v):
         shifted[time][shifted[time] < 0] = 0
     return shifted
 
+def findPath(folder="InitialData"):
+    """
+    Note: find the data file inside a given folder
+    """
+
+    mydir = os.getcwd()
+
+    mydir = mydir[0:-len(mydir.split('/')[-1])-1]
+    mydir = os.path.join(mydir,folder)
+
+    try:
+        os.mkdir(mydir)
+        print('New folder added:',mydir)
+    except(FileExistsError):
+        pass
+
+    return mydir
+
 def show_shifted(lat,lon, snapshots, shifted):
+
+    image_dir = findPath(folder="bulk_image")
     # plot the shifted fields to see how well they match:
     times = sorted([key for key in snapshots])
     for i,t0 in enumerate(times):
-        plt.figure(i);
+        plt.figure(i,figsize=(16, 16));
         plt.subplot(2,1,1)
         plt.contourf(lon,lat,snapshots[t0])
         plt.title(t0)
@@ -102,7 +136,17 @@ def show_shifted(lat,lon, snapshots, shifted):
         plt.subplot(2,1,2)
         plt.contourf(lon,lat,shifted[t0])
         plt.title(t0+", shifted")
+        plt.savefig(os.path.join(image_dir,f'paired_{t0}.png'),dpi=300)
     plt.show()
+
+    for i,t0 in enumerate(times):
+        plt.figure(i,figsize=(16, 10));
+        plt.subplot(1,1,1)
+        plt.contourf(lon,lat,shifted[t0])
+        plt.title(t0+", shifted")
+        plt.savefig(os.path.join(image_dir,f'bulk_motion_{t0}.png'),dpi=300)
+    plt.show()
+
 
 def show_shiftdiff(lat,lon, snapshots, shifted):
     # plot the shifted fields to see how well they match:
@@ -112,12 +156,14 @@ def show_shiftdiff(lat,lon, snapshots, shifted):
         plt.contourf(lon,lat,shifted[t0]-shifted[t1])
         plt.title(t0+"-"+t1+", shifted")
         plt.colorbar()
+        plt.savefig(f'{t0}_{t1}.png',dpi=300)
     plt.show()
+
 
 mydir = os.path.join('..','Output')
 lat, lon, snapshots = read_snapshots(mydir)
 u,v = find_mainflow(snapshots)
 shifted = shift_snapshots(snapshots,u,v)
-#show_shiftdiff(lat,lon, snapshots, shifted)
+# show_shiftdiff(lat,lon, snapshots, shifted)
 
 show_shifted(lat,lon, snapshots, shifted)
