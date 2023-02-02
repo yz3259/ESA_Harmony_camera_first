@@ -1,6 +1,9 @@
 # Requirements (additional packages not required in the netCDF tutorial)
-
-`pip install dill`
+# these two links are specifications for using the deformetrica package:
+conda create -n deformetrica python=3.8 numpy && source activate deformetrica
+pip install deformetrica
+# python package requirements (without deformetrica)
+pip install xarray numpy pandas matplotlib notebook jupytext netcdf4 dill
 
 # Data
 
