@@ -4,7 +4,12 @@ import os
 import dill as pickle
 from glob import glob
 import matplotlib.pyplot as plt
+
+from skimage.measure import find_contours
+from skimage.draw import polygon_perimeter
+
 import transform
+import filetools as ft
 
 def read_snapshots(mydir):
     snapshots = {}
@@ -71,29 +76,32 @@ def snapshots_2_mainflow(snap0, snap1):
     dy = dy if dy < q.shape[0]/2 else dy-q.shape[0]
     return dx, dy
 
+
+
+
 def window_function(shape, ixy_start, ixy_end, ntaper):
     retval = np.zeros(shape)
     retval[ixy_start[0], ixy_start[1]:ixy_end[1]] = 1
     retval[ixy_start[0]:ixy_end[0], ixy_start[1]] = 1
 
     ntap = min(ixy_start[0]-1,ntaper)
-    ix_min = ixy_start[0]-ntap 
+    ix_min = ixy_start[0]-ntap
     for itap in range(ntap):
         retval[ixy_start[0]-ntap+itap, ixy_start[1]] = (1-np.cos( (itap/ntap) * np.pi )) /2
     ntap = min(shape[0]-ixy_end[0]-1,ntaper)
-    ix_max = ixy_end[0]+ntap 
+    ix_max = ixy_end[0]+ntap
     for itap in range(ntap):
         retval[ixy_end[0]+ntap-itap-1, ixy_start[1]] = (1-np.cos( (itap/ntap) * np.pi )) /2
     ntap = min(ixy_start[1]-1,ntaper)
-    iy_min = ixy_start[1]-ntap 
+    iy_min = ixy_start[1]-ntap
     for itap in range(ntap):
         retval[ixy_start[0], ixy_start[1]-ntap+itap] = (1-np.cos( (itap/ntap) * np.pi )) /2
     ntap = min(shape[1]-ixy_end[1]-1,ntaper)
-    iy_max = ixy_end[1]+ntap 
+    iy_max = ixy_end[1]+ntap
     for itap in range(ntap):
         retval[ixy_start[0],ixy_end[1]+ntap-itap-1] = (1-np.cos( (itap/ntap) * np.pi )) /2
     for ix in range(ix_min, ix_max+1):
-        retval[ix,iy_min:iy_max+1] = retval[ixy_start[0],iy_min:iy_max+1] * retval[ix, ixy_start[1]] 
+        retval[ix,iy_min:iy_max+1] = retval[ixy_start[0],iy_min:iy_max+1] * retval[ix, ixy_start[1]]
     return retval
 
 def find_mainflow(snapshots, mwindow = 1, u=None, v=None):
@@ -112,7 +120,7 @@ def find_mainflow(snapshots, mwindow = 1, u=None, v=None):
         vel_u  = np.zeros(shape)
         vel_v  = np.zeros(shape)
         weight = np.zeros(shape)
- 
+
         for iwindow in range(mwindow):
             for jwindow in range(mwindow):
                 ixy_start = [int(iwindow*shape[0]/mwindow), int(jwindow*shape[1]/mwindow)]
@@ -128,8 +136,8 @@ def find_mainflow(snapshots, mwindow = 1, u=None, v=None):
                 vel_u  += dx*w
                 vel_v  += dy*w
                 weight += w
-        
-        t0t1 = t0 + ' : ' + t1 
+
+        t0t1 = t0 + ' : ' + t1
         isok = weight>0
         if t0t1 not in u:
            u[t0t1] = np.zeros(shape)
@@ -147,7 +155,7 @@ def shift_snapshots(lat,lon,snapshots, u, v):
     dy[times[0]] = np.zeros(snapshots[times[0]].shape)
 
     for t0,t1 in zip(times[:-1],times[1:]):
-        t0t1 = t0 + ' : ' + t1 
+        t0t1 = t0 + ' : ' + t1
         dx[t1] = dx[t0] + u[t0t1]
         dy[t1] = dy[t0] + v[t0t1]
 
@@ -161,27 +169,11 @@ def shift_snapshots(lat,lon,snapshots, u, v):
         shifted[time][shifted[time] < 0] = 0
     return shifted
 
-def findPath(folder="InitialData"):
-    """
-    Note: find the data file inside a given folder
-    """
 
-    mydir = os.getcwd()
-
-    mydir = mydir[0:-len(mydir.split('/')[-1])-1]
-    mydir = os.path.join(mydir,folder)
-
-    try:
-        os.mkdir(mydir)
-        print('New folder added:',mydir)
-    except(FileExistsError):
-        pass
-
-    return mydir
 
 def show_shifted(lat,lon, snapshots, shifted):
 
-    image_dir = findPath(folder="bulk_image")
+    image_dir = ft.findPath(folder="bulk_image")
     # plot the shifted fields to see how well they match:
     times = sorted([key for key in snapshots])
     for i,t0 in enumerate(times):
@@ -209,7 +201,7 @@ def show_shifted(lat,lon, snapshots, shifted):
 
 def show_advec(lat,lon, u,v):
 
-    image_dir = findPath(folder="bulk_image")
+    image_dir = ft.findPath(folder="bulk_image")
     # plot the shifted fields to see how well they match:
     for i,t0t1 in enumerate(sorted([key for key in u])):
         plt.figure(i,figsize=(16, 16));
@@ -223,7 +215,6 @@ def show_advec(lat,lon, u,v):
         plt.colorbar()
         plt.title('v at '+t0t1)
     plt.show()
-
 
 
 def show_shiftdiff(lat,lon, snapshots, shifted):
@@ -265,3 +256,62 @@ if __name__ == "__main__":
     show_advec(lat,lon, u,v)
     show_shifted(lat,lon, shifted0, shifted)
     show_shifted(lat,lon, snapshots, shifted)
+
+
+    # find matched and unmatched points
+    if False: # havenot put matching files functions yet.
+        infname1 = '/home/yz3259/Documents/Python_Jupyter_projects/SWI2023/swi-challenge-2023-netcdf-tutorial-master/Output/regridded_position_12_03_10_A2.pkl'
+        infname2 = '/home/yz3259/Documents/Python_Jupyter_projects/SWI2023/swi-challenge-2023-netcdf-tutorial-master/Output/regridded_position_12_04_10_B3.pkl'
+
+        # if "regrid" in infname:
+
+        #     # ncfname = find_paired_Data(infname,folder = "InitialData")
+        #     print('nc filename: ',ncfname)
+        with open(infname1,'rb') as file:
+            data1 = pickle.load(file)
+        with open(infname2,'rb') as file:
+            data2 = pickle.load(file)
+
+        image11 = data1["height"]
+        true_lon = data1["lon"]
+        true_lat = data1["lat"]
+
+        image2 = data2["height"]
+        true_lon = data1["lon"]
+        true_lat = data1["lat"]
+
+        filter_height = 1.5
+        # image1 = sample_ds.cloud_edge_height.values
+        # image2 = image1[::-1]
+        S_c =  matched_pts(image1,image2,filter_height)
+        S_1,S_2 = unmatched_pts(image1,image2,filter_height)
+
+        plt.figure(figsize=(10,8))
+        plt.imshow(S_c)
+        plt.title(f'matched pts A vs B')
+        plt.show()
+        plt.close()
+
+        plt.figure(figsize=(10,8))
+        plt.imshow(S_1)
+        plt.title('unmatched in A')
+        plt.show()
+        plt.close()
+
+        plt.figure(figsize=(10,8))
+        plt.imshow(S_2)
+        plt.title('unmatched in B')
+        plt.show()
+        plt.close()
+
+        plt.figure(figsize=(10,8))
+        plt.imshow(image2)
+        plt.title('B')
+        plt.show()
+        plt.close()
+
+        plt.figure(figsize=(10,8))
+        plt.imshow(image1)
+        plt.title('A')
+        plt.show()
+        plt.close()
