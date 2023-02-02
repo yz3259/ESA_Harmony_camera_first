@@ -47,7 +47,7 @@ void triangle_to_uniform(const size_t nx, const size_t ny,
                  check_lon = lon123[0] + alpha * (lon123[1]-lon123[0]) + beta * (lon123[2]-lon123[0]);
           if (std::abs(lat(ix,iy)-check_lat)>1e-7) throw std::runtime_error("lat is niet goed");
           if (std::abs(lon(ix,iy)-check_lon)>1e-7) throw std::runtime_error("lon is niet goed");
-          if (alpha < 0 or beta<0 or alpha + beta > 1) continue;
+          if (alpha < -0.001 or beta<-0.001 or alpha + beta > 1.001) continue;
 
           height(ix,iy) = std::max(height(ix,iy), 
                             height123[0] + alpha * (height123[1]-height123[0])
@@ -169,7 +169,7 @@ void regrid_knmi(const size_t nx, const size_t ny,
         for (size_t iy=0; iy<ny-1; iy++) {
             int jx = (int) ( (double) ix + (lon(ix,iy)   - lon_a(ix,iy))/std::abs(lon(1,0)-lon(0,0))),
                 jy = (int) ( (double) iy + (lat_a(ix,iy) -   lat(ix,iy))/std::abs(lat(0,1)-lat(0,0)));
-            if (jx<0) {
+            if (jx<0 and false) {
                printf("From %ld,%ld: starting at (%d,%d)\n", ix,iy, jx,jy);
             }
             for (int it=0;it<3;it++) {
@@ -201,7 +201,7 @@ void regrid_knmi(const size_t nx, const size_t ny,
                 }
             }
 
-            if (jx<0) {
+            if (jx<0 and false) {
                printf("Done %ld,%ld: starting at (%d,%d)\n\n", ix,iy, jx,jy);
             }
 
