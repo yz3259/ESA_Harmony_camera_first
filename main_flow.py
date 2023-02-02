@@ -78,6 +78,38 @@ def snapshots_2_mainflow(snap0, snap1):
 
 
 
+def boundary_boxes(image,filter_height,plot_image = False):
+
+
+    image_b = binarylise_image(image,filter_height)
+
+    contours = find_contours(image_b, 0.8)
+    bounding_boxes = []
+
+    for contour in contours:
+        Xmin = np.min(contour[:,0])
+        Xmax = np.max(contour[:,0])
+        Ymin = np.min(contour[:,1])
+        Ymax = np.max(contour[:,1])
+
+        bounding_boxes.append([Xmin, Xmax, Ymin, Ymax])
+    #print(bounding_boxes)
+
+    if plot_image:
+        with_boxes  = np.copy(image_b)
+
+        for box in bounding_boxes:
+            #[Xmin, Xmax, Ymin, Ymax]
+            r = [box[0],box[1],box[1],box[0], box[0]]
+            c = [box[3],box[3],box[2],box[2], box[3]]
+            rr, cc = polygon_perimeter(r, c, with_boxes.shape)
+            with_boxes[rr, cc] = 0.8 #set color white
+
+        plt.figure(figsize=(10,8))
+        plt.imshow(with_boxes, interpolation='nearest')
+        plt.show()
+    return bounding_boxes
+
 
 def window_function(shape, ixy_start, ixy_end, ntaper):
     retval = np.zeros(shape)
@@ -127,7 +159,7 @@ def find_mainflow(snapshots, mwindow = 1, u=None, v=None):
                 ixy_end   = [int((iwindow+1)*shape[0]/mwindow), int((jwindow+1)*shape[1]/mwindow)]
                 ntaper    = int(0.3*(shape[0] + shape[1])/(2*mwindow))
                 w = window_function(shape, ixy_start = ixy_start, ixy_end = ixy_end, ntaper = ntaper)
-                if False:
+                if True:
                     plt.contourf(w)
                     plt.colorbar()
                     plt.show()

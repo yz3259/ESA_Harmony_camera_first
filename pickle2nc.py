@@ -100,7 +100,7 @@ if __name__ == "__main__":
     filenumber = int(input('Give a digit between 0 and 9 to load a file.'))
     print(filenames[filenumber])
     infname = filenames[filenumber]
-    if "new" in infname:
+    if "true" in infname:
 
         ncfname = find_paired_Data(infname,folder = "InitialData")
         print('nc filename: ',ncfname)
