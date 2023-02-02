@@ -31,15 +31,15 @@ def read_snapshots(mydir):
             except ValueError:
                 continue
 
-        time = identification[idx:]
+        time = identification[idx:-3]
         print('time:',time)
-        camera = identification[9:]
         with open(fname,'rb') as file:
             mydict = pickle.load(file)
         if time in snapshots:
             snapshots[time] = np.maximum(snapshots[time], mydict['height'])
         else:
             snapshots[time] = mydict['height']
+        snapshots[time][snapshots[time]<0] = 0
         if lat is not None:
             if np.any(lat != mydict['lat']):
                 raise RuntimeError('differences in lat')
