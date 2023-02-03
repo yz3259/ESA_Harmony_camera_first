@@ -40,11 +40,11 @@ def findPath(folder="InitialData"):
 def find_paired_Data(infname,folder = "InitialData"):
     mypath = findPath(folder=folder)
     infname_str = infname.split('/')[-1]
-    print('split name: ',infname_str)
-    for string in infname.split('_'):
+    print('split name: ',infname_str.split('/'))
+    for string in infname_str.split('_'):
         try:
             int(string)
-            idx = infname.find(string)
+            idx = infname_str.find(string)
           #  print(idx)
             break
         except ValueError:
@@ -56,8 +56,10 @@ def find_paired_Data(infname,folder = "InitialData"):
     #     print(f"/{infname_str[0:-8]}.nc")
     #     print(pair_fname)
     #else:
-    infname_str.replace('.pkl','.nc')
-    print(infname_str)
+
+    infname_str=os.path.basename(infname).replace('.pkl','.nc')
+
+    print('searching for the file: ',infname_str[idx:])
     pair_fname = glob.glob(mypath+f"/*{infname_str[idx:]}")
 
     return pair_fname[0]
@@ -71,11 +73,11 @@ def extract_tensor(sample_ds):
     theta = sample_ds.theta_view.values
     phi = sample_ds.phi_view.values
 
-    print(heights.shape)
-    print(lats.shape)
-    print(lons.shape)
-    print(theta.shape)
-    print(phi.shape)
+    # print(heights.shape)
+    # print(lats.shape)
+    # print(lons.shape)
+    # print(theta.shape)
+    # print(phi.shape)
 
     # from bottom to top lat, lons, heights, theta, phi
     input_tensor = np.stack([lats,lons,heights,theta,phi], axis=0)
@@ -85,7 +87,7 @@ def extract_tensor(sample_ds):
 
 def scatterPlot(output_tensor,input_tensor,filename):
     namelists = filename.split('/')
-    print(namelists)
+    #print(namelists)
     lons = output_tensor[1,:,:].flatten()         # 1D numpy
     lats = output_tensor[0,:,:].flatten()          # 1D numpy
     cths = input_tensor[2,:,:].flatten() # 1D numpy
@@ -94,7 +96,9 @@ def scatterPlot(output_tensor,input_tensor,filename):
     plt.figure(figsize=(15,10))
     plt.scatter(lons, lats, c=cths, cmap='magma', s=0.1)
     plt.title(namelists[-1])
-    plt
+    plt.show()
+    plt.close()
+    #plt.savefig(f'{filename}')
 
 if __name__ == "__main__":
 
@@ -119,7 +123,6 @@ if __name__ == "__main__":
         print('nc filename: ',ncfname)
         with open(infname,'rb') as file:
             data = pickle.load(file)
-            print(data)
 
         height = data["height"]
         true_lon = data["lon"]
@@ -128,7 +131,8 @@ if __name__ == "__main__":
         output_tensor = np.stack([true_lat,true_lon],axis=0)
 
         sample_ds = xr.load_dataset(ncfname, engine="netcdf4")
-        ft.update_xarray(sample_ds,output_tensor,ncfname,folder="Data")
+        print('ncfname: ',ncfname)
+        ft.update_xarray(sample_ds,output_tensor,ncfname,folder="Data",title = 'true_position')
 
         # plt.figure(figsize=(16,10))
         # plt.contourf(lon,lat,height,levels=30)
