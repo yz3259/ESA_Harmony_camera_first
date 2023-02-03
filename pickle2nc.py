@@ -30,7 +30,6 @@ def findPath(folder="InitialData"):
     """
     Note: find the data file inside a given folder
     """
-
     mydir = os.getcwd()
     mydir = mydir[0:-len(mydir.split('/')[-1])-1]
     mydir = os.path.join(mydir,folder)
@@ -38,20 +37,28 @@ def findPath(folder="InitialData"):
     return mydir
 
 
-
-
-
-
 def find_paired_Data(infname,folder = "InitialData"):
     mypath = findPath(folder=folder)
     infname_str = infname.split('/')[-1]
-    print('split one',infname_str)
-    if "new" in infname_str:
-        pair_fname = glob.glob(mypath+f"/*{infname_str[0:-8]}.nc")
-        print(f"/{infname_str[0:-8]}.nc")
-        print(pair_fname)
-    else:
-        pair_fname = glob.glob(mypath+f"/*{infname_str}")
+    print('split name: ',infname_str)
+    for string in infname.split('_'):
+        try:
+            int(string)
+            idx = infname.find(string)
+          #  print(idx)
+            break
+        except ValueError:
+            continue
+
+
+    # if "true" in infname_str:
+    #     pair_fname = glob.glob(mypath+f"/*{infname_str[0:-8]}.nc")
+    #     print(f"/{infname_str[0:-8]}.nc")
+    #     print(pair_fname)
+    #else:
+    infname_str.replace('.pkl','.nc')
+    print(infname_str)
+    pair_fname = glob.glob(mypath+f"/*{infname_str[idx:]}")
 
     return pair_fname[0]
 
@@ -97,9 +104,15 @@ if __name__ == "__main__":
     filenames_x = findaAllFiles(folder="InitialData",extn ="/*.nc")
     # print(filenames_x)
 
-    filenumber = int(input('Give a digit between 0 and 9 to load a file.'))
-    print(filenames[filenumber])
+    filenumber = int(input('Give a digit between 0 and 19 to load a file.'))
+    print('The pkl filename:',filenames[filenumber])
     infname = filenames[filenumber]
+
+    while "true" not in infname:
+        filenumber = int(input('Give a bigger number: '))
+        print(filenames[filenumber])
+        infname = filenames[filenumber]
+
     if "true" in infname:
 
         ncfname = find_paired_Data(infname,folder = "InitialData")
@@ -123,13 +136,15 @@ if __name__ == "__main__":
         # plt.savefig(f"{infname.split('/')[-1]}.png",dpi=300)
 
 
+
+
     filename = find_paired_Data(infname,folder = "Data")
     sample_ds = xr.load_dataset(filename, engine="netcdf4")
     # NB: - open_dataset opens lazily and turns the .nc file to read-only until the corresp. ds has been .closed().
     #     - load_dataset loads all the .nc contents into memory closes the .nc file immediately after.
 
     # info for that xr.Dataset:
-    display(sample_ds)
+    #display(sample_ds)
     true_lat = sample_ds.true_latitude.values
     true_lon = sample_ds.true_longitude.values
     data = np.stack([true_lat,true_lon],axis=0)
@@ -179,7 +194,7 @@ if __name__ == "__main__":
                     continue
 
             if 'new' in filename:
-                print(filename.split('_'))
+                #print(filename.split('_'))
                 idx2 = filename.find('new')
                 dst = f"{title1}_{filename[idx:idx2-1]}.pkl"
                 print('dst: ',dst)
