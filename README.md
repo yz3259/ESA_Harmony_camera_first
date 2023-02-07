@@ -2,7 +2,7 @@
 ## python package requirements
 pip install xarray numpy pandas matplotlib notebook jupytext netcdf4 scikit-image dill
 
-## these two links are specifications for using the deformetrica package:
+## NB, for the deformetrica package:
 conda create -n deformetrica python=3.8 numpy && source activate deformetrica
 pip install deformetrica
 
