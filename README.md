@@ -1,9 +1,11 @@
-# Requirements (additional packages not required in the netCDF tutorial)
-# these two links are specifications for using the deformetrica package:
+# Requirements
+## python package requirements
+pip install xarray numpy pandas matplotlib notebook jupytext netcdf4 scikit-image dill
+
+## these two links are specifications for using the deformetrica package:
 conda create -n deformetrica python=3.8 numpy && source activate deformetrica
 pip install deformetrica
-# python package requirements (without deformetrica)
-pip install xarray numpy pandas matplotlib notebook jupytext netcdf4 dill
+
 
 # Data
 
@@ -21,5 +23,6 @@ The original netCDF files must be put in a folder in the parent folder of where 
 `python main_flow.py`
 This will create outputs in `../bulk_image` (that folder will be created by the script).
 
+## 3) create the .nc files
+Use pickel2nc.py, and use an index from 0 to 19.
 
-## soon, pkl to nc . py ; will convert to .nc with new name
